@@ -1,4 +1,4 @@
 nanogenmo
 =========
 
-Generate a novel
+Generate a novel, for the NaNoGenMo project
