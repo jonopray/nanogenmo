@@ -1,0 +1,4 @@
+nanogenmo
+=========
+
+Generate a novel
