@@ -10,6 +10,7 @@
 0001 | I hate you.
 0001 | You're making me angry.
 0001 | Leave me alone.
-0000 | I am _(A)_.
-0000 | I have been _(V)_.
-0000 | I am feeling _(A)_.
+1000 | I am _A_.
+1000 | I have been _V_.
+1000 | I am feeling _A_.
+2000 | The _N_ is rather _A_ today.
