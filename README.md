@@ -17,3 +17,5 @@ General plan of attack:
 2. Write the actual story, by plugging the actions generated in the plot into multi-level templating
     * Pick sentence types (sentence for action, sentence for describing something, sentence for this action)
     * Writing sentence types. generate_sentence(character, action, object)
+3. Generate characters with goals and relationships.
+   * Each character needs distinct personalities (generated on creation, with some development functions.)
