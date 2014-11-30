@@ -24,6 +24,9 @@
   <ItemGroup>
     <Compile Include="Conv1.py" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="TextFile1.txt" />
+  </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
