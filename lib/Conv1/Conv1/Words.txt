@@ -1,0 +1,10 @@
+N | food
+N | clothes
+N | hair
+V | walk
+V | run
+V | jump
+A | warm
+A | cold
+A | happy
+A | sad
