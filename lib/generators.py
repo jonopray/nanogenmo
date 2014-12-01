@@ -9,7 +9,7 @@ class Character:
 	female_names = ["Mary", "Jennifer", "Jessica", "Sarah", "Karen", "Lisa", "Sandra", "Ashley", "Michelle", "Emily"]
 	last_names = ["Johnson", "Davis", "Miller", "Jackson", "Robinson", "Clark", "Allen", "Carter"]
 	genders = ["male", "female"]
-	trait_categories = ["intelligence", "strength", "charisma", "kindness", "competence", "resolve", "honesty", "age", "outgoingness", "status", "mood", "attractiveness"]
+	trait_categories = ["intelligence", "strength", "charisma", "kindness", "competence", "resolve", "honesty", "age", "outgoingness", "status", "mood", "attractiveness", "pride"]
 	dist = [1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 5];
 	#trait_category_scales = {"intelligence" : ["moron", "foolish"]}
 
@@ -40,6 +40,7 @@ class Character:
 
 	def generate_traits(self):
 		# TODO: Bias traits on a per trait level when generating. Most traits should bias in the middle
+		# TODO: Correlate traits (status and pride, age and strength/intelligence)
 		self.traits = {category : choice(self.dist) for category in Character.trait_categories}
 
 	@staticmethod
@@ -79,55 +80,100 @@ class Character:
 
 	def act(self, world):
 		pass
-    	# Look at current goal and figure out what to do next.
-    	# Do we want to do something with a person?
+		# Look at current goal and figure out what to do next.
+		# Do we want to do something with a person?
 
-    def create_relationship(self, other):
-    	possible_relationships = []
-    	
-    	family_difference = 0
-    	for ['status', 'intelligence', 'charisma', 'strength'] as trait:
-    		family_difference += abs(self.traits[trait] - other.traits[trait])
-    	values_difference = 0
-    	for ['intelligence', 'kindness', 'honesty', 'status', 'attractiveness'] as trait:
-    		values_difference += abs(self.traits[trait] - other.traits[trait])
+	# if same allegiance and both high status, familial
+	# if similar strength and intelligence, familial
+	# if familial and differing ages, parent or uncle if parent exists
+	# if conflicting values of kindness, enemies
+	# if not family, and not enemies
+	def create_relationship(self, other):
+		#TODO: exception for age = 1. Should either be familial or maybe friends if same age
+		possible_relationships = []
+		
+		family_difference = 0
+		for trait in ['status', 'intelligence', 'charisma', 'strength']:
+			family_difference += abs(self.traits[trait] - other.traits[trait])
+		if self.allegiance != other.allegiance:
+			family_difference += 5
+		values_difference = 0
+		for trait in ['intelligence', 'kindness', 'honesty', 'status', 'attractiveness']:
+			values_difference += abs(self.traits[trait] - other.traits[trait])
 
-    	if (self.allegiance == other.allegiance and self.traits['status'] >= 4 and \
-    		other.traits['status'] >= 4) or family_difference <= 3:
-    		possible_relationships.append('familial')
-    	
-    	if (self.allegiance == other.allegiance and self.traits['status'] >= 2 and \
-    		other.traits['status'] >= 2):
-    		possible_relationships.append('political')
+		if (self.allegiance == other.allegiance and self.traits['status'] >= 4 and \
+			other.traits['status'] >= 4) or family_difference <= 3:
+			possible_relationships.append('familial')
+		
+		if self.allegiance == other.allegiance and self.traits['status'] >= 2 and \
+			other.traits['status'] >= 2 and self.traits['status'] != other.traits['status']:
+			possible_relationships.append('political')
 
-    	if (self.gender != other.gender and self.mood > 2 and other.mood > 2 and \
-    		values_difference <= 4):
-    		possible_relationships.append('romantic')
+		if self.gender != other.gender and self.traits['mood'] > 2 and \
+			other.traits['mood'] > 2 and values_difference <= 4:
+			possible_relationships.append('romantic interest')
 
-    	if ()
+		# TODO: each character should have a different view of the other.
+		# proud, mean, moody people of different allegiances should be enemies
+		malice = 21
+		malice = malice + self.traits['pride'] + other.traits['pride']
+		malice = malice - self.traits['kindness'] - other.traits['kindness']
+		malice = malice - self.traits['mood'] / 2 - other.traits['mood'] / 2
+		malice = malice - 2 * abs(self.traits['age'] - other.traits['age'])
+		if self.allegiance != other.allegiance:
+			malice += 3
+		if malice >= 23:
+			possible_relationships.append('enemy')
 
-    		"""
-    		if self.traits['age'] == other.traits['age']:
-    			self.relationships[other.id] = "sibling"
-    			other.relationships[self.id] = "sibling"
-    		else if self.traits['age'] < other.traits['age']:
-    			self.relationships[other.id] = "parent";
-    			other.relationships[self.id] = "child";
-    		else:
-    			self.relationships[other.id] = "child";
-    			other.relationships[self.id] = "parent";
-    		self.relationships[other.id] = "";
-    			other.relationships[self.id] = "";
-    		"""
+		if malice <= 15 and values_difference <= 9:
+			possible_relationships.append('friend')
 
-    	# if same allegiance and both high status, familial
-    	# if similar strength and intelligence, familial
-    	# if familial and differing ages, parent or uncle if parent exists
-    	# if conflicting values of kindness, enemies
-    	# if not family, and not enemies
+		# If two randos are forced to have a relationship, sometimes they shouldn't
+		if len(possible_relationships) == 0:
+			if randint(1,3) == 1:
+				possible_relationships.append('acquaintance')
+			else:
+				return 0
+
+		# Pick the possible relationship to be the relationship
+		relationship = choice(possible_relationships)
+
+		# Categorize by age
+		# enemies, friends, and acquaintances can just be that
+		if relationship == "enemy" or relationship == "friend" or \
+			relationship == "acquaintance" or relationship == "romantic interest":
+			self.relationships[other.id] = relationship;
+			other.relationships[self.id] = relationship;
+		elif relationship == "familial":
+			if self.traits['age'] == other.traits['age']:
+				self.relationships[other.id] = "sibling"
+				other.relationships[self.id] = "sibling"
+			elif self.traits['age'] < other.traits['age']:
+				self.relationships[other.id] = "parent";
+				other.relationships[self.id] = "child";
+			else:
+				self.relationships[other.id] = "child";
+				other.relationships[self.id] = "parent";
+		elif relationship == "political":
+			if self.traits['status'] > other.traits['status']:
+				# TODO: Can't have two masters?
+				self.relationships[other.id] = "subordinate";
+				other.relationships[self.id] = "master";
+			else:
+				self.relationships[other.id] = "master";
+				other.relationships[self.id] = "subordinate";
+		print(other.full_name() + " is " + self.full_name() + "'s " + self.relationships[other.id])
+		print(self.full_name() + " is " + other.full_name() + "'s " + other.relationships[self.id])
+		#print(other.full_name() + " is a " + other.relationships[self.id] + " of " + self.full_name())
+		self.print2()
+		other.print2()
+		return 1
+
+	def full_name(self):
+		return self.first_name + " " + self.last_name
 
 	def print2(self):
-		print(self.first_name + " " + self.last_name + " - " + self.gender + " " + self.allegiance)
+		print(self.full_name() + " - " + self.gender + " " + self.allegiance)
 		print(self.traits)
 
 # Generate some allegiances
@@ -140,15 +186,15 @@ for i in range(num_characters):
 	characters.append(
 		Character.generate(i, allegiances)
 	)
-	characters[i].print2()
+	#characters[i].print2()
 
 # Create relationships
 num_relationships = 0
-while num_relationships < 4 * num_characters: # roughly 4 relationships per person
+while num_relationships < 10: #4 * num_characters: # roughly 4 relationships per person
 	# Pick two characters at random and create a relationship, if they don't have one
-	(char_a, char_b2) = sample(characters, 2)
-	char_a.create_relationship(char_b)
-	num_relationships += 2
+	(char_a, char_b) = sample(characters, 2)
+	if char_a.create_relationship(char_b) == 1: 
+		num_relationships += 2
 
 """
 # test Character creation
