@@ -52,32 +52,6 @@ class Character:
 		character.traits['resolve'] = randint(1,3)
 		return character
 
-	def generate_goals(self):
-		self.goals = ["protect self"]
-		self.generate_goal()
-
-	goals = ["entertain self", "protect PERSON", ""]
-	# NEED TO GENERATE CHARACTERS AND FORM RELATIONSHIPS FIRST, BEFORE DECIDING GOALS
-	def generate_goal(self):
-		# Motivations: is there a person we care about? Are we high status?
-		# for now, let's do random
-
-
-
-		# I want to avenge my brother by finding the person who knows who killed him and getting that information, then
-		# by killing that person. Top level goals would include "avenge X", "conquer X", "protect X", "escape X", "obey X",
-		# "protect self", "entertain self"
-		#
-		# Plot event is any action that a character takes.
-		#
-		# If a character is in a place where an action happens, that action is added to their knowledge.
-		# If two characters are in the same location, random chance to share knowledge. If a character asks about something,
-		# better chance of getting shared knowledge.
-		#
-		# Base actions include 'go', 'find' (at location), 'work', 'sleep', ('ask', 'talk', 'recruit', 'confront') -> dialogue with intent, 'fight', 'kill'
-		# what does a base level action look like?
-		action = {'verb' : "go", 'object' : "Port Monsmouth"}
-
 	def act(self, world):
 		pass
 		# Look at current goal and figure out what to do next.
@@ -162,12 +136,103 @@ class Character:
 			else:
 				self.relationships[other.id] = "master";
 				other.relationships[self.id] = "subordinate";
+		"""
+		# Print out the relationship
 		print(other.full_name() + " is " + self.full_name() + "'s " + self.relationships[other.id])
 		print(self.full_name() + " is " + other.full_name() + "'s " + other.relationships[self.id])
-		#print(other.full_name() + " is a " + other.relationships[self.id] + " of " + self.full_name())
 		self.print2()
 		other.print2()
+		"""
 		return 1
+
+	def generate_goals(self):
+		self.goals = ["protect self"]
+		self.generate_goal()
+
+	goals = ["entertain self", "protect PERSON", ""]
+	# NEED TO GENERATE CHARACTERS AND FORM RELATIONSHIPS FIRST, BEFORE DECIDING GOALS
+	def generate_goal(self):
+		# Motivations: is there a person we care about? Are we high status?
+		#["intelligence", "strength", "charisma", "kindness", "competence", "resolve", "honesty", "age", "outgoingness", "status", "mood", "attractiveness", "pride"]
+		# High status, pride, and lots of subordinates: want to conquer/do something for self
+		# Strength, resolve, kindness, and a close bond: protect that person
+		# Age = 1: no goals. Age = 2: "follow X (caretaker?)" or "see world"/"find home" if no caretaker
+		# Age = 3-4: do anything, Age = 5: "find home", "do job"
+		# Any master: "obey X" should be present
+		# High outgoingness, charisma, and intelligence: "entertain self"
+		# Kindness of 1: abuse others?
+		# High strength and pride: confront enemy
+		# Character with a job: do job
+		age = self.traits['age']
+		if age == 1:
+			return
+		elif age == 2:
+			parent = -1
+			master = -1
+			friend = -1
+			for char_id, relationship in self.relationships.items():
+				if relationship == "parent":
+					parent = char_id
+				elif relationship == "master":
+					master = char_id
+				#elif relationship == "friend": # TODO: if friend is older, then add them here
+				#	friend = char_id
+			if parent != -1:
+				self.goals.append("follow " + str(parent))
+			elif master != -1:
+				self.goals.append("follow " + str(master))
+			return
+		
+		num_subordinates = 0
+		child = -1
+		sibling = -1
+		interest = -1
+		friend = -1
+		for char_id, relationship in self.relationships.items():
+			if relationship == "subordinate":
+				num_subordinates += 1
+			elif relationship == "master":
+				num_subordinates = -1
+			elif relationship == "child":
+				child = char_id
+			elif relationship == "sibling":
+				sibling = char_id
+			elif relationship == "romantic interest":
+				interest = char_id
+			elif relationship == "friend":
+				friend = char_id
+					
+		leadershipt_score = self.traits['status'] + self.traits['pride'] + num_subordinates #4, 4, 1
+		if self.traits['status'] >= 4 and leadershipt_score >= 9:
+			self.goals.append("conquer " + "X") # TODO: Replace "X" with some sort of real target
+
+		guardian_score = self.traits['strength'] + self.traits['resolve'] + self.traits['kindness'] #4, 3, 3
+		if child != -1 and guardian_score >= 8:
+			self.goals.append("protect " + str(child))
+		elif interest != -1 and guardian_score >= 10:
+			self.goals.append("protect " + str(interest))
+		elif sibling != -1 and guardian_score >= 10:
+			self.goals.append("protect " + str(sibling))
+		elif friend != -1 and guardian_score >= 12:
+			self.goals.append("protect " + str(friend))
+
+		# I want to avenge my brother by finding the person who knows who killed him and getting that information, then
+		# by killing that person. Top level goals would include "avenge X", "conquer X", "protect X", "escape X", "obey X",
+		# "protect self", "entertain self"
+		#
+		# Plot event is any action that a character takes.
+		#
+		# If a character is in a place where an action happens, that action is added to their knowledge.
+		# If two characters are in the same location, random chance to share knowledge. If a character asks about something,
+		# better chance of getting shared knowledge.
+		#
+		# Base actions include 'go', 'find' (at location), 'work', 'sleep', ('ask', 'talk', 'recruit', 'confront') -> dialogue with intent, 'fight', 'kill'
+		# what does a base level action look like?
+		action = {'verb' : "go", 'object' : "Port Monsmouth"}
+
+	# TODO: job generator
+
+	# TODO: evaluating fear of a situation
 
 	def full_name(self):
 		return self.first_name + " " + self.last_name
@@ -175,6 +240,8 @@ class Character:
 	def print2(self):
 		print(self.full_name() + " - " + self.gender + " " + self.allegiance)
 		print(self.traits)
+		print(self.goals)
+		print(self.relationships)
 
 # Generate some allegiances
 allegiances = ["none", "Harteria", "Mystacasm", "Poynter"]
@@ -196,11 +263,12 @@ while num_relationships < 10: #4 * num_characters: # roughly 4 relationships per
 	if char_a.create_relationship(char_b) == 1: 
 		num_relationships += 2
 
-"""
-# test Character creation
-c = Character.generate()
-c.print2()
-"""
+# Create goals
+characters[0].generate_goals()
+characters[0].print2()
+#for i in range(num_characters):
+#	characters[i].gererate_goals()
+
 
 def generate_environment():
 	pass
