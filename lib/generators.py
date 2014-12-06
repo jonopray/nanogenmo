@@ -1,15 +1,15 @@
+# Written by Jonathan Opray
+# Credit to treyhunner for the name generation https://github.com/treyhunner
+
 from random import choice
 from random import randint
 from random import sample
+from name import get_first_name
+from name import get_last_name
 
 class Character:
-	# TODO: abstract away these choices. In generate(), pass in a config file,
-	# which we can open and read from.
-	male_names = ["James", "John", "Robert", "Michael", "William", "David", "Richard"]
-	female_names = ["Mary", "Jennifer", "Jessica", "Sarah", "Karen", "Lisa", "Sandra", "Ashley", "Michelle", "Emily"]
-	last_names = ["Johnson", "Davis", "Miller", "Jackson", "Robinson", "Clark", "Allen", "Carter"]
 	genders = ["male", "female"]
-	trait_categories = ["intelligence", "strength", "charisma", "kindness", "competence", "resolve", "honesty", "age", "outgoingness", "status", "mood", "attractiveness", "pride"]
+	trait_categories = ["intelligence", "strength", "charisma", "kindness", "competence", "resolve", "honesty", "age", "extraversion", "status", "mood", "attractiveness", "pride", "curiosity"]
 	dist = [1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 5];
 	#trait_category_scales = {"intelligence" : ["moron", "foolish"]}
 
@@ -23,17 +23,15 @@ class Character:
 		character = Character()
 		character.id = character_id
 		character.gender = choice(Character.genders)
-		if character.gender == "male" :
-			character.first_name = choice(Character.male_names)
-		else:
-			character.first_name = choice(Character.female_names)
-		character.last_name = choice(Character.last_names)
+		character.first_name = get_first_name(character.gender)
+		character.last_name = get_last_name()
+		character.allegiance = choice(allegiances)
 		character.generate_traits()
+
 		character.knowledge = {} # a dictionary of plot_id : [location bool, subject bool, verb bool, object bool]
 		# character.job/position? has a location
 		character.relationships = {} # a dictionary of character name : 1-5 describing how close, 3 neutral
 		character.goals = []
-		character.allegiance = choice(allegiances)
 
 		# TODO: process traits into archetype for character
 		return character
@@ -153,13 +151,13 @@ class Character:
 	# NEED TO GENERATE CHARACTERS AND FORM RELATIONSHIPS FIRST, BEFORE DECIDING GOALS
 	def generate_goal(self):
 		# Motivations: is there a person we care about? Are we high status?
-		#["intelligence", "strength", "charisma", "kindness", "competence", "resolve", "honesty", "age", "outgoingness", "status", "mood", "attractiveness", "pride"]
+		#["intelligence", "strength", "charisma", "kindness", "competence", "resolve", "honesty", "age", "extraversion", "status", "mood", "attractiveness", "pride"]
 		# High status, pride, and lots of subordinates: want to conquer/do something for self
 		# Strength, resolve, kindness, and a close bond: protect that person
 		# Age = 1: no goals. Age = 2: "follow X (caretaker?)" or "see world"/"find home" if no caretaker
 		# Age = 3-4: do anything, Age = 5: "find home", "do job"
 		# Any master: "obey X" should be present
-		# High outgoingness, charisma, and intelligence: "entertain self"
+		# High extraversion, charisma, and intelligence: "entertain self"
 		# Kindness of 1: abuse others?
 		# High strength and pride: confront enemy
 		# Character with a job: do job
@@ -188,6 +186,7 @@ class Character:
 		sibling = -1
 		interest = -1
 		friend = -1
+		enemy = -1
 		for char_id, relationship in self.relationships.items():
 			if relationship == "subordinate":
 				num_subordinates += 1
@@ -201,9 +200,11 @@ class Character:
 				interest = char_id
 			elif relationship == "friend":
 				friend = char_id
+			elif relationship == "enemy":
+				enemy = char_id
 					
-		leadershipt_score = self.traits['status'] + self.traits['pride'] + num_subordinates #4, 4, 1
-		if self.traits['status'] >= 4 and leadershipt_score >= 9:
+		leadership_score = self.traits['status'] + self.traits['pride'] + num_subordinates #4, 4, 1
+		if self.traits['status'] >= 4 and leadership_score >= 9:
 			self.goals.append("conquer " + "X") # TODO: Replace "X" with some sort of real target
 
 		guardian_score = self.traits['strength'] + self.traits['resolve'] + self.traits['kindness'] #4, 3, 3
@@ -215,6 +216,23 @@ class Character:
 			self.goals.append("protect " + str(sibling))
 		elif friend != -1 and guardian_score >= 12:
 			self.goals.append("protect " + str(friend))
+
+		print("leadership: " + str(leadership_score) + " -> 9, guardian: " + str(guardian_score) + " -> 8,10,12")
+		# most people don't want to protect anyone or conquer anything... curiosity + resolve -> explore
+		if self.traits['curiosity'] + self.traits['resolve'] >= 8:
+			self.goals.append("explore world")
+
+		# a lot of people will want to entertain themselves
+		if self.traits['extraversion'] >= 3 and randint(1,3) == 1:
+			self.goals.append("entertain self")
+
+		if self.traits['attractiveness'] >= 3 and self.traits['mood'] >= 3 and \
+			self.traits['extraversion'] >= 3 and interest == -1 and randint(1,2) == 1:
+			self.goals.append("find love")
+		
+		if enemy != -1 and self.traits['pride'] + randint(0,2) >= 5:
+			self.goals.append("defeat " + str(enemy))
+
 
 		# I want to avenge my brother by finding the person who knows who killed him and getting that information, then
 		# by killing that person. Top level goals would include "avenge X", "conquer X", "protect X", "escape X", "obey X",
@@ -257,7 +275,7 @@ for i in range(num_characters):
 
 # Create relationships
 num_relationships = 0
-while num_relationships < 10: #4 * num_characters: # roughly 4 relationships per person
+while num_relationships < 4 * num_characters: # roughly 4 relationships per person
 	# Pick two characters at random and create a relationship, if they don't have one
 	(char_a, char_b) = sample(characters, 2)
 	if char_a.create_relationship(char_b) == 1: 
